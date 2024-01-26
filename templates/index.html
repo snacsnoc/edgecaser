@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Case Website Tester</title>
+</head>
+<body>
+    <h1>Edge Case Website Tester</h1>
+    <form action="/" method="post">
+        <label for="url">Enter URL:</label><br>
+        <input type="text" id="url" name="url" required><br>
+
+        <h2>Browser Options:</h2>
+        <div>
+            <input type="checkbox" id="disableJavascript" name="options" value="disableJavascript">
+            <label for="disableJavascript">Disable JavaScript</label>
+        </div>
+        <div>
+            <input type="checkbox" id="disableCSS" name="options" value="disableCSS">
+            <label for="disableCSS">Disable CSS (doesn't work)</label>
+        </div>
+        <div>
+            <input type="checkbox" id="disableImages" name="options" value="disableImages">
+            <label for="disableImages">Disable Images</label>
+        </div>
+        <h2>Network Conditions:</h2>
+        <div>
+            <input type="checkbox" id="slowNetwork" name="options" value="slowNetwork">
+            <label for="slowNetwork">Slow Network</label>
+        </div>
+        <div>
+            <input type="checkbox" id="offlineMode" name="options" value="offlineMode">
+            <label for="offlineMode">Offline Mode</label>
+        </div>
+        <div>
+            <input type="checkbox" id="highLatency" name="options" value="highLatency">
+            <label for="highLatency">High Latency</label>
+        </div>
+
+        <h2>Screen Resolutions:</h2>
+        <div>
+            <input type="radio" id="resolution1" name="resolution" value="800x600">
+            <label for="resolution1">800x600</label>
+        </div>
+        <div>
+            <input type="radio" id="resolution2" name="resolution" value="1024x768">
+            <label for="resolution2">1024x768</label>
+        </div>
+        <div>
+            <input type="radio" id="resolution3" name="resolution" value="1920x1080">
+            <label for="resolution3">1920x1080</label>
+        </div>
+
+        <input type="submit" value="Test URL">
+    </form>
+</body>
+</html>
