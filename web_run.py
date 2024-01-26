@@ -27,7 +27,7 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
     chrome_options.add_argument("--disable-web-security")
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--disable-cache")
-
+    print(f"Session {session_id} starting with options: {options}")
     # Set browser window size based on the selected resolution
     width, height = map(int, resolution.split("x"))
     chrome_options.add_argument(f"--window-size={width},{height}")
@@ -42,7 +42,6 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
 
     if "disableImages" in options:
         print("Disabling images.......", session_id)
-        chrome_options.add_argument("--disable-images")
         chrome_options.add_experimental_option(
             "prefs", {"profile.managed_default_content_settings.images": 2}
         )
@@ -59,16 +58,6 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()), options=chrome_options
     )
-
-    if "disableCSS" in options:
-        print("Disabling css.......", session_id)
-        chrome_options.add_argument("--disable-css")
-        disable_css_script = """
-        for (let i = 0; i < document.styleSheets.length; i++) {
-            document.styleSheets[i].disabled = true;
-        }
-        """
-        driver.execute_script(disable_css_script)
 
     if "slowNetwork" in options:
         print("Slow network.......", session_id)
@@ -104,19 +93,72 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
     os.makedirs(screenshots_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
 
-    # Start taking screenshots before we get the webpage
+    # Start taking screenshots in intervals before we get the webpage
     # in an attempt to capture the loading process
-    screenshot_task = asyncio.create_task(
+    screenshot_interval_task = asyncio.create_task(
         capture_load_screenshots(
             driver,
-            interval=0.001,
+            interval=0.02,
             duration=20,
             screenshots_dir=screenshots_dir,
             options_str=options_str,
         )
     )
 
-    driver.get(url)
+    # Start at a blank page
+    driver.get("about:blank")
+
+    # Wait for the page to load
+    await asyncio.sleep(1)
+
+    start_time = time.time()  # Time in seconds
+
+    driver.execute_script(f"window.location = '{url}'")
+
+    # Get navigation timing data
+    timing_script = """
+    return window.performance.timing.toJSON();
+    """
+
+    navigation_timing = driver.execute_script(timing_script)
+
+    # print(f"Navigation timing {navigation_timing}")
+
+    # Calculate the timing of when to take screenshots based on navigation events
+    timings = calculate_delays(navigation_timing, start_time)
+
+    # Start the screenshot task
+    screenshot_task = asyncio.create_task(
+        capture_response_screenshots(driver, timings, screenshots_dir, options_str)
+    )
+
+    # Apply options that require the page to be loaded/loading
+    if "disableImagesJS" in options:
+        print("Disabling images.......", session_id)
+        disable_images_script = """
+        var imgs = document.images;
+        for (var i = 0; i < imgs.length; i++) {
+            imgs[i].src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+        }
+        """
+        driver.execute_script(disable_images_script)
+
+    if "disableCSS" in options:
+        print("Applying disableCSS after page load.......", session_id)
+        disable_css_script = """
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            document.styleSheets[i].disabled = true;
+        }
+        """
+        driver.execute_script(disable_css_script)
+
+    # Extract console logs
+    logs = driver.get_log("browser")
+    log_filename = create_filename(url, options_str, "console.log")
+
+    with open(os.path.join(logs_dir, log_filename), "w") as file:
+        for entry in logs:
+            file.write(f"{entry['level']} - {entry['message']}\n")
 
     await screenshot_task
     print("Finished capturing screenshots", options_str)
@@ -128,17 +170,8 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
         os.path.join(f"static/{session_id}", video_filename),
         options_str,
     )
-
-    # Extract console logs
-    logs = driver.get_log("browser")
-    log_filename = create_filename(url, options_str, "console.log")
-
-    with open(os.path.join(logs_dir, log_filename), "w") as file:
-        for entry in logs:
-            file.write(f"{entry['level']} - {entry['message']}\n")
-
     driver.quit()
-
+    print(f"Session {session_id} completed.")
     return (
         session_id,
         log_filename,
@@ -154,33 +187,91 @@ def create_filename(url, options_str, file_type):
     return filename
 
 
+# Calculate the timing of when to take screenshots based on navigation events
+def calculate_delays(navigation_timing, start_time):
+    current_time = time.time() * 1000  # Current time in milliseconds
+    navigation_start = navigation_timing["navigationStart"]
+
+    def calc_delay(event_time):
+        return (event_time - navigation_start) / 1000.0 - (
+            current_time - start_time
+        ) / 1000.0
+
+    # Calculate delays for all events
+    events = [
+        "connectEnd",
+        "connectStart",
+        "domComplete",
+        "domContentLoadedEventEnd",
+        "domContentLoadedEventStart",
+        "domInteractive",
+        "domLoading",
+        "domainLookupEnd",
+        "domainLookupStart",
+        "fetchStart",
+        "loadEventEnd",
+        "loadEventStart",
+        "requestStart",
+        "responseEnd",
+        "responseStart",
+        "secureConnectionStart",
+    ]
+
+    return [
+        (event, calc_delay(navigation_timing[event]))
+        for event in events
+        if navigation_timing[event] != 0
+    ]
+
+
+# Capture screenshots by navigation timing
+async def capture_response_screenshots(driver, timings, screenshots_dir, options_str):
+    for timing in timings:
+        event_name, delay = timing
+        if delay > 0:
+            await asyncio.sleep(delay)
+        screenshot_filename = f"{screenshots_dir}/{event_name}-{options_str}.png"
+        driver.save_screenshot(screenshot_filename)
+
+
+# Capture screenshots by intervals
 async def capture_load_screenshots(
     driver, interval, duration, screenshots_dir, options_str
 ):
     start_time = time.time()
     while time.time() - start_time < duration:
-        screenshot_filename = (
-            f"{screenshots_dir}/{int(time.time() - start_time)}-{options_str}.png"
-        )
-        driver.save_screenshot(screenshot_filename)
+        try:
+            screenshot_filename = (
+                f"{screenshots_dir}/{int(time.time() - start_time)}-{options_str}.png"
+            )
+            driver.save_screenshot(screenshot_filename)
+        except Exception as e:
+            print(f"Error capturing screenshot: {e}")
         await asyncio.sleep(interval)
 
 
-def create_video_from_screenshots(screenshots_dir, output_file, options_str):
+def create_video_from_screenshots(
+    screenshots_dir, output_file, options_str, video_duration=10
+):
     absolute_screenshots_dir = os.path.abspath(screenshots_dir)
     absolute_output_file = os.path.abspath(output_file)
 
     pattern = f"{absolute_screenshots_dir}/*-{options_str}.png"
 
+    screenshot_files = glob.glob(pattern)
     # Check if there are any files matching the pattern
-    if not glob.glob(pattern):
+    if not screenshot_files:
         print(f"No images found for pattern: {pattern}")
         return
-
+    # Calculate frame rate
+    frame_count = len(screenshot_files)
+    frame_rate = max(1, frame_count / video_duration)  # Ensure frame rate is at least 1
+    print("Frame rate:", frame_rate)
+    print("Creating video for ", options_str, "......")
     ffmpeg_command = [
         "ffmpeg",
         "-framerate",
-        "24",
+        "1",  # Manually set
         "-pattern_type",
         "glob",
         "-i",
@@ -193,3 +284,4 @@ def create_video_from_screenshots(screenshots_dir, output_file, options_str):
     ]
     print("Processing video for", options_str, "......")
     subprocess.run(ffmpeg_command)
+    print("Processed video for", options_str, " !")
