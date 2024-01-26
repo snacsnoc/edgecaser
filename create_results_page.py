@@ -1,15 +1,12 @@
-from flask import render_template_string
 import os
-
-# get current time in unix
-import time
+from quart import current_app, render_template_string
 
 
-def create_standalone_html_file(
+async def create_standalone_html_file(
     formatted_results, current_time, output_file="static/results"
 ):
     # Render the template with the formatted results
-    rendered_html = render_template_string(
+    rendered_html = await render_template_string(
         results_html_template, results=formatted_results
     )
 
