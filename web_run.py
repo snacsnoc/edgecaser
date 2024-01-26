@@ -125,11 +125,14 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
     # print(f"Navigation timing {navigation_timing}")
 
     # Calculate the timing of when to take screenshots based on navigation events
+    # Use this with capture_response_screenshots()
     timings = calculate_delays(navigation_timing, start_time)
 
     # Start the screenshot task
     screenshot_task = asyncio.create_task(
-        capture_response_screenshots(driver, timings, screenshots_dir, options_str)
+        dynamic_interval_screenshot_capture(
+            driver, start_time, screenshots_dir, options_str
+        )
     )
 
     # Apply options that require the page to be loaded/loading
@@ -152,6 +155,7 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
         """
         driver.execute_script(disable_css_script)
 
+    await screenshot_task
     # Extract console logs
     logs = driver.get_log("browser")
     log_filename = create_filename(url, options_str, "console.log")
@@ -160,7 +164,6 @@ async def process_with_selenium(url, options, resolution, session_id, current_ti
         for entry in logs:
             file.write(f"{entry['level']} - {entry['message']}\n")
 
-    await screenshot_task
     print("Finished capturing screenshots", options_str)
 
     # Create a video using the options_str
@@ -222,6 +225,24 @@ def calculate_delays(navigation_timing, start_time):
         for event in events
         if navigation_timing[event] != 0
     ]
+
+
+# Capture screenshots by dynamic intervals (0.01s, 0.1s, 1s, 10s)
+async def dynamic_interval_screenshot_capture(
+    driver, start_time, screenshots_dir, options_str
+):
+    elapsed_time = 0
+    while elapsed_time < 20:
+        interval = (
+            0.01 if elapsed_time < 5 else 0.1
+        )  # Shorter intervals in the first 5 seconds
+        screenshot_filename = (
+            f"{screenshots_dir}/{int(time.time() - start_time)}-{options_str}.png"
+        )
+
+        driver.save_screenshot(screenshot_filename)
+        await asyncio.sleep(interval)
+        elapsed_time = time.time() - start_time
 
 
 # Capture screenshots by navigation timing
