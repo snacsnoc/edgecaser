@@ -55,6 +55,8 @@ results_html_template = """
                     Your browser does not support the video tag.
                 </video>
                 <br>
+                <a href="{{ result.video_url }}" download>Download Video</a>
+                <br>
                 <a href="{{ result.log_url }}" download>Download Log File</a>
             </div>
         {% endfor %}
