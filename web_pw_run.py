@@ -42,7 +42,7 @@ async def capture_screenshots(page, interval, duration, screenshot_dir, file_pre
         screenshot_path = screenshot_dir / f"{file_prefix}_{count}.png"
         await page.screenshot(path=str(screenshot_path))
         count += 1
-        logger.info(f"Captured screenshot {count}")
+        # logger.info(f"Captured screenshot {count} for {page} - {file_prefix}")
         await asyncio.sleep(interval)
 
 
@@ -71,30 +71,40 @@ async def create_video(screenshot_dir, file_prefix, output_filename):
         str(output_filename),
     ]
     subprocess.run(ffmpeg_command)
-    logger.info(f"Video created at: {output_filename}")
+    logger.info(f"Video created at: {output_filename} with framerate {frame_rate}")
 
 
+# Load a web page using Playwright and capture screenshots
+# Returns a tuple of (video_filename, log_filename)
 async def load_page_with_screenshots(
     session_id,
-    test_type,  # Add this parameter to define the test type
+    test_type,
     url,
     screenshot_interval,
     load_duration,
     disable_js,
     disable_images,
+    disable_css,
     slow_route,
     slow_network_chrome,
+    screen_resolution,
     delay_ms=2000,
 ):
-    screenshot_dir = Path(f"static/results/{session_id}")  # Update path
+    logger.info(
+        f"Starting test: {test_type}, disable_js: {disable_js}, disable_images: {disable_images}, disable_css: {disable_css}, slow_route: {slow_route}, slow_network_chrome: {slow_network_chrome}, resolution: {screen_resolution}"
+    )
+    screenshot_dir = Path(f"static/results/{session_id}")
     screenshot_dir.mkdir(parents=True, exist_ok=True)
 
     file_prefix = test_type
-
+    width, height = map(int, screen_resolution.split("x"))
     logger.info(f"Test type: {test_type}")
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        context = await browser.new_context(java_script_enabled=not disable_js)
+        context = await browser.new_context(
+            java_script_enabled=not disable_js,
+            viewport={"width": width, "height": height},
+        )
 
         if disable_images:
             await context.route(
@@ -103,15 +113,19 @@ async def load_page_with_screenshots(
                 if route.request.resource_type == "image"
                 else route.continue_(),
             )
+        if disable_css:
+            await context.route(
+                "**/*",
+                lambda route: route.abort()
+                if route.request.resource_type == "stylesheet"
+                or route.request.url.endswith(".css")
+                else route.continue_(),
+            )
 
         page = await context.new_page()
 
-        async def handle_slow_route(route):
-            await asyncio.sleep(delay_ms / 1000)  # Convert milliseconds to seconds
-            await route.continue_()
-
         if slow_route:
-            await context.route("**", handle_slow_route)
+            await context.route("**", make_handle_slow_route(delay_ms))
 
         if slow_network_chrome:
             # TODO: allow passing of variantion of network conditions
@@ -146,3 +160,11 @@ async def load_page_with_screenshots(
     await create_video(
         screenshot_dir, file_prefix, screenshot_dir / f"{file_prefix}.mp4"
     )
+
+
+def make_handle_slow_route(delay_ms):
+    async def handle_slow_route(route):
+        await asyncio.sleep(delay_ms / 1000)
+        await route.continue_()
+
+    return handle_slow_route
