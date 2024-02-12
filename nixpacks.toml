@@ -1,2 +1,4 @@
 [phases.setup]
-aptPkgs = ["...", "ffmpeg"]
+providers = ["...", "python"]
+nixPkgs = ["...", "GLIBC-2.36", "ffmpeg"]
+cmds = ["python -m playwright install"]
