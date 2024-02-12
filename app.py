@@ -10,6 +10,7 @@ from web_pw_run import load_page_with_screenshots
 from logger import logger
 
 app = Quart(__name__)
+app.config["SESSION_REVERSE_PROXY"] = True
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -66,7 +67,7 @@ async def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=True)
 
 
 def format_results(session_id, options):
