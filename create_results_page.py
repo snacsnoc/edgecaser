@@ -1,24 +1,26 @@
-import os
-from quart import current_app, render_template_string
+from quart import render_template_string
+from pathlib import Path
 
 
+# Create a standalone HTML file for the given session ID and results
+# Returns the relative path from 'static/' for use in 'url_for'
 async def create_standalone_html_file(
-    formatted_results, current_time, output_file="static/results"
+    session_id, formatted_results, base_dir="static/results"
 ):
-    # Render the template with the formatted results
+    # Create a unique directory for this session under 'static/results'
+    output_dir = Path(base_dir) / session_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file_path = output_dir / "results_page.html"
+
+    # Render the HTML template with results
     rendered_html = await render_template_string(
         results_html_template, results=formatted_results
     )
 
-    output_dir = os.path.join(output_file, f"{current_time}")
-    os.makedirs(output_dir, exist_ok=True)
+    output_file_path.write_text(rendered_html)
 
-    output_path = os.path.join(output_dir, "results_page.html")
-
-    with open(output_path, "w") as file:
-        file.write(rendered_html)
-
-    return output_path
+    return output_file_path.relative_to("static").as_posix()
 
 
 results_html_template = """
