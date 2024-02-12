@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Results</title>
+    <style>
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .test-result {
+            margin: 10px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Results</h1>
+    <div class="gallery">
+        {% for result in results %}
+            <div class="test-result">
+                <h2>Test: {{ result.options_str }}</h2>
+                <img height=400px width=auto src="{{ result.screenshot_url }}" alt="Screenshot">
+                <br>
+                <a href="{{ result.log_url }}" download>Download Log File</a>
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

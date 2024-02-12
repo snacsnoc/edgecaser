@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Case Website Tester</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        label {
+            margin-top: 10px;
+        }
+        input[type=text], input[type=submit], input[type=radio], input[type=checkbox] {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type=submit] {
+            width: auto;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        input[type=submit]:hover {
+            background-color: #45a049;
+        }
+        .options, .network, .resolutions {
+            margin-bottom: 20px;
+        }
+        .options label, .network label, .resolutions label {
+           /* display: block; */
+        }
+        input[type=radio], input[type=checkbox] {
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edge Case Website Tester</h1>
+        <form action="/" method="post">
+            <div>
+                <label for="url">Enter URL:</label><br>
+                <input type="text" id="url" name="url" required><br>
+            </div>
+
+            <div class="options">
+                <h2>Browser Options:</h2>
+                <input type="checkbox" id="disableJavascript" name="options" value="disableJavascript">
+                <label for="disableJavascript">Disable JavaScript</label><br>
+                <input type="checkbox" id="disableCSS" name="options" value="disableCSS">
+                <label for="disableCSS">Disable CSS</label><br>
+                <input type="checkbox" id="disableImages" name="options" value="disableImages">
+                <label for="disableImages">Disable Images</label>
+            </div>
+
+            <div class="network">
+                <h2>Network Conditions:</h2>
+                <input type="checkbox" id="slowNetwork" name="options" value="slowNetwork">
+                <label for="slowNetwork">Slow Network</label><br>
+                <input type="checkbox" id="offlineMode" name="options" value="offlineMode">
+                <label for="offlineMode">Offline Mode (not implemented)</label><br>
+                <input type="checkbox" id="highLatency" name="options" value="highLatency">
+                <label for="highLatency">High Latency (2000ms delay to routes)</label>
+            </div>
+
+            <div class="resolutions">
+                <h2>Screen Resolutions:</h2>
+                <input type="radio" id="resolution1" name="resolution" value="800x600">
+                <label for="resolution1">800x600</label><br>
+                <input type="radio" id="resolution2" name="resolution" value="1024x768">
+                <label for="resolution2">1024x768</label><br>
+                <input type="radio" id="resolution3" name="resolution" value="1920x1080">
+                <label for="resolution3">1920x1080</label>
+            </div>
+
+            <input type="submit" value="Test URL">
+        </form>
+    </div>
+</body>
+</html>
