@@ -25,17 +25,30 @@ async def index():
         # Load the page with selected option and create screenshots
         tasks = []
         for option in options:
+            # Create distinct flags for each option/task
+            disable_js = "disableJavascript" == option
+            disable_images = "disableImages" == option
+            disable_css = "disableCSS" == option
+            slow_route = "highLatency" == option
+            slow_network_chrome = "slowNetwork" == option
+
+            logger.info(
+                f"Creating task for option: {option} - Flags: disable_js: {disable_js}, disable_images: {disable_images}, disable_css: {disable_css}, slow_route: {slow_route}, slow_network_chrome: {slow_network_chrome}"
+            )
+
             task = asyncio.create_task(
                 load_page_with_screenshots(
-                    session_id,
-                    option,  # Pass the test type
-                    url,
+                    session_id=session_id,
+                    test_type=option,
+                    url=url,
                     screenshot_interval=0.05,
                     load_duration=10,
-                    disable_js="disableJavascript" in options,
-                    disable_images="disableImages" in options,
-                    slow_route="highLatency" in options,
-                    slow_network_chrome="slowNetwork" in options,
+                    disable_js=disable_js,
+                    disable_images=disable_images,
+                    disable_css=disable_css,
+                    slow_route=slow_route,
+                    slow_network_chrome=slow_network_chrome,
+                    screen_resolution=resolution,
                 )
             )
             tasks.append(task)
