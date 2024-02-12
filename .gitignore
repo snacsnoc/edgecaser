@@ -1,0 +1,5 @@
+# Ignore virtual environment directory
+venv/
+
+# Ignore static results directory
+static/results/
