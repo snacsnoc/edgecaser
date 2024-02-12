@@ -18,7 +18,6 @@ async def index():
         form_data = await request.form
         url = form_data["url"]
         options = form_data.getlist("options")
-        # TODO: implement resultions
         resolution = form_data.get("resolution", "1024x768")
         session_id = str(uuid.uuid4())
 
