@@ -1,0 +1,1 @@
+web: gunicorn -k quart.worker app:app
